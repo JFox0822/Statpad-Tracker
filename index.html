@@ -99,7 +99,6 @@
   <div class="tab active" onclick="showTab('tally')">🏆 Win Tally</div>
   <div class="tab" onclick="showTab('stats')">📊 Stat Breakdown</div>
   <div class="tab" onclick="showTab('log')">📋 Game Log</div>
-  <div class="tab" onclick="showTab('submit')">➕ Submit</div>
   <div class="tab" onclick="showTab('setup')">⚙️ Setup</div>
 </div>
 
@@ -107,7 +106,7 @@
   <div id="tab-tally"></div>
   <div id="tab-stats" style="display:none"></div>
   <div id="tab-log"   style="display:none"></div>
-  <div id="tab-submit" style="display:none"></div>
+
   <div id="tab-setup" style="display:none"></div>
 </div>
 
@@ -224,6 +223,20 @@ function renderTally() {
 
   let html = '';
   if (notSetup) html += setupBanner();
+
+  // Submit form
+  html += `
+    <div class="card">
+      <div class="card-title">Add a Result</div>
+      <label class="lbl">Player</label>
+      <select id="s-player">
+        ${PLAYERS.map(p=>`<option>${p}</option>`).join('')}
+      </select>
+      <label class="lbl">Paste StatPad share text</label>
+      <textarea id="s-raw" placeholder="⚾️💎 StatpadGame #90 ⚾️💎&#10;&#10;Total Score: 14 WAR 🔥&#10;Guesses: 6&#10;Percentile: 13.5%"></textarea>
+      <button class="btn" onclick="submitEntry()">Submit</button>
+      <div class="msg" id="s-msg"></div>
+    </div>`;
 
   html += `<div class="card"><div class="card-title">Win Tally</div>`;
   board.forEach((w,i) => {
@@ -353,25 +366,6 @@ function renderLog() {
   document.getElementById('tab-log').innerHTML = html;
 }
 
-function renderSubmit() {
-  const notSetup = !CONFIG.BIN_ID || !CONFIG.API_KEY;
-  let html = '';
-  if (notSetup) html += setupBanner();
-
-  html += `
-    <div class="card">
-      <div class="card-title">Add a Result</div>
-      <label class="lbl">Player</label>
-      <select id="s-player">
-        ${PLAYERS.map(p=>`<option>${p}</option>`).join('')}
-      </select>
-      <label class="lbl">Paste StatPad share text</label>
-      <textarea id="s-raw" placeholder="⚾️💎 StatpadGame #90 ⚾️💎&#10;&#10;Total Score: 14 WAR 🔥&#10;Guesses: 6&#10;Percentile: 13.5%"></textarea>
-      <button class="btn" onclick="submitEntry()">Submit</button>
-      <div class="msg" id="s-msg"></div>
-    </div>`;
-  document.getElementById('tab-submit').innerHTML = html;
-}
 
 function renderSetup() {
   document.getElementById('tab-setup').innerHTML = `
@@ -464,11 +458,11 @@ async function saveConfig() {
 
 // ─── Tab switching ─────────────────────────────────────────────────────────────
 function showTab(name) {
-  ['tally','stats','log','submit','setup'].forEach(t => {
+  ['tally','stats','log','setup'].forEach(t => {
     document.getElementById(`tab-${t}`).style.display = t===name?'block':'none';
   });
   document.querySelectorAll('.tab').forEach((el,i) => {
-    el.classList.toggle('active', ['tally','stats','log','submit','setup'][i]===name);
+    el.classList.toggle('active', ['tally','stats','log','setup'][i]===name);
   });
   if (name==='stats') renderStats();
 }
@@ -477,7 +471,6 @@ function renderAll() {
   renderTally();
   renderStats();
   renderLog();
-  renderSubmit();
   renderSetup();
 }
 
