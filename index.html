@@ -430,6 +430,24 @@ async function deleteEntry(idx) {
   renderAll();
 }
 
+function startEdit(idx) {
+  document.getElementById(`edit-row-${idx}`).style.display = 'block';
+}
+
+function cancelEdit(idx) {
+  document.getElementById(`edit-row-${idx}`).style.display = 'none';
+}
+
+async function saveEdit(idx) {
+  const newScore = parseFloat(document.getElementById(`edit-score-${idx}`).value);
+  const newPct   = document.getElementById(`edit-pct-${idx}`).value;
+  if (isNaN(newScore)) { alert('Enter a valid score.'); return; }
+  entries[idx].score = newScore;
+  entries[idx].percentile = newPct !== '' ? parseFloat(newPct) : null;
+  await pushData(entries);
+  renderAll();
+}
+
 function selectStat(stat) {
   activeStatTab = stat;
   renderStats();
