@@ -99,7 +99,7 @@
   <div class="tab active" onclick="showTab('tally')">🏆 Win Tally</div>
   <div class="tab" onclick="showTab('stats')">📊 Stat Breakdown</div>
   <div class="tab" onclick="showTab('log')">📋 Game Log</div>
-  <div class="tab" onclick="showTab('setup')">⚙️ Setup</div>
+  <div class="tab" onclick="showTab('setup')">✏️ Override</div>
 </div>
 
 <div class="body">
@@ -112,10 +112,10 @@
 
 <script>
 // ─── Config ──────────────────────────────────────────────────────────────────
-// Fill these in with your JSONBin details (see Setup tab)
+// ⬇️ FILL THESE IN ONCE — then push to GitHub. No setup needed for anyone.
 const CONFIG = {
-  BIN_ID:  localStorage.getItem('sp_bin_id')  || '',
-  API_KEY: localStorage.getItem('sp_api_key') || '',
+  BIN_ID:  '6a022a11250b1311c3364ef2',
+  API_KEY: '$2a$10$PmqFtXvx2n71XyMW0ITf1eP8fRHuRU7IVWJP1bxDBPdFfIL1yhPie',
 };
 
 const PLAYERS = ['Luke', 'Jacob', 'Chris', 'Tommy'];
@@ -419,37 +419,54 @@ function renderLog() {
 
 
 function renderSetup() {
+  const byGame = groupByGame();
+  const gameKeys = Object.keys(byGame).sort().reverse();
+
+  let overrideRows = '';
+  if (!gameKeys.length) {
+    overrideRows = `<div class="no-data">No entries yet.</div>`;
+  } else {
+    gameKeys.forEach(key => {
+      const group  = byGame[key];
+      const sorted = [...group].sort((a,b) => b.score - a.score);
+      const gNum   = group[0].gameNumber;
+      const date   = group[0].date;
+      overrideRows += `<div style="margin-bottom:20px">
+        <div style="font-size:13px;font-weight:700;color:#94a3b8;margin-bottom:8px">
+          ${gNum ? `Game #${gNum}` : ''} ${date ? `· ${fmtDate(date)}` : ''}
+        </div>`;
+      sorted.forEach(e => {
+        const idx2 = entries.indexOf(e);
+        overrideRows += `
+          <div style="padding:10px 0;border-bottom:1px solid #0f1924">
+            <div style="font-weight:700;color:${COLORS[e.player]};margin-bottom:8px">${e.player} — ${e.stat}</div>
+            <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+              <span style="color:#64748b;font-size:12px">Score:</span>
+              <input type="number" id="ov-score-${idx2}" value="${e.score}" step="0.1"
+                style="background:#1a2740;border:1px solid #1e3a5f;border-radius:6px;padding:6px 10px;color:#fff;font-size:14px;width:85px" />
+              <span style="color:#64748b;font-size:12px">Pct:</span>
+              <input type="number" id="ov-pct-${idx2}" value="${e.percentile??''}" step="0.1" placeholder="—"
+                style="background:#1a2740;border:1px solid #1e3a5f;border-radius:6px;padding:6px 10px;color:#fff;font-size:14px;width:85px" />
+              <button onclick="saveEdit(${idx2})"
+                style="background:#22c55e;color:#fff;border:none;border-radius:6px;padding:6px 14px;font-weight:700;font-size:13px;cursor:pointer">Save</button>
+              <button onclick="deleteEntry(${idx2})"
+                style="background:transparent;color:#ef4444;border:1px solid #ef4444;border-radius:6px;padding:6px 12px;font-size:13px;cursor:pointer">Delete</button>
+              <span id="ov-msg-${idx2}" style="font-size:12px;color:#22c55e"></span>
+            </div>
+          </div>`;
+      });
+      overrideRows += `</div>`;
+    });
+  }
+
   document.getElementById('tab-setup').innerHTML = `
     <div class="card">
-      <div class="card-title">⚙️ Setup — JSONBin</div>
-      <p style="color:#94a3b8;font-size:14px;line-height:1.7;margin-bottom:16px">
-        JSONBin stores your shared scores in the cloud so all four of you see the same data.
-        It's free — takes about 2 minutes.
-      </p>
-      <ol style="color:#94a3b8;font-size:14px;line-height:2;padding-left:20px">
-        <li>Go to <a href="https://jsonbin.io" target="_blank" style="color:#3b82f6">jsonbin.io</a> and create a free account</li>
-        <li>Click <strong style="color:#e2e8f0">API Keys</strong> → copy your <strong style="color:#e2e8f0">Master Key</strong></li>
-        <li>Click <strong style="color:#e2e8f0">Bins → Create Bin</strong>, paste <code style="color:#22c55e">{"entries":[]}</code>, save it</li>
-        <li>Copy the <strong style="color:#e2e8f0">Bin ID</strong> from the URL or dashboard</li>
-        <li>Paste both below and click Save</li>
-      </ol>
-
-      <label class="lbl" style="margin-top:20px">Master Key</label>
-      <input type="text" id="cfg-key" placeholder="$2a$10$..." value="${CONFIG.API_KEY}" />
-      <label class="lbl">Bin ID</label>
-      <input type="text" id="cfg-bin" placeholder="64a3b2c1e3f..." value="${CONFIG.BIN_ID}" />
-      <button class="btn" onclick="saveConfig()" style="margin-top:12px">Save & Test Connection</button>
-      <div class="msg" id="cfg-msg"></div>
+      <div class="card-title">⚙️ Override / Delete Scores</div>
+      ${overrideRows}
     </div>`;
 }
 
-function setupBanner() {
-  return `<div class="setup-banner">
-    <h3>⚠️ Setup needed to sync data</h3>
-    <p>Go to the <strong>Setup tab</strong> and add your JSONBin credentials so all four players share the same data.
-    Until then, scores only save locally in your browser.</p>
-  </div>`;
-}
+
 
 // ─── Actions ──────────────────────────────────────────────────────────────────
 let currentMode = 'paste';
@@ -532,26 +549,7 @@ function selectStat(stat) {
   renderStats();
 }
 
-async function saveConfig() {
-  const key = document.getElementById('cfg-key').value.trim();
-  const bin = document.getElementById('cfg-bin').value.trim();
-  const msg = document.getElementById('cfg-msg');
-  if (!key || !bin) { msg.textContent = '⚠️ Both fields are required.'; return; }
-  msg.textContent = 'Testing…';
-  try {
-    const r = await fetch(`https://api.jsonbin.io/v3/b/${bin}/latest`, { headers: { 'X-Master-Key': key } });
-    if (!r.ok) throw new Error('Bad response');
-    localStorage.setItem('sp_api_key', key);
-    localStorage.setItem('sp_bin_id',  bin);
-    CONFIG.API_KEY = key; CONFIG.BIN_ID = bin;
-    const j = await r.json();
-    entries = j.record?.entries ?? [];
-    msg.textContent = '✅ Connected! Data loaded.';
-    renderAll();
-  } catch {
-    msg.textContent = '❌ Connection failed — double-check your Key and Bin ID.';
-  }
-}
+
 
 // ─── Tab switching ─────────────────────────────────────────────────────────────
 function showTab(name) {
